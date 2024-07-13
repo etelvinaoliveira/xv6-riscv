@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "defs.h"
 
+#define INITIAL_TICKETS 1
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -53,6 +55,7 @@ procinit(void)
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
+      p->tickets = INITIAL_TICKETS;
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
   }
@@ -680,4 +683,16 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int
+totalTickets(void) {
+    struct proc *p;
+    int total = 0;
+    for (p = proc; p < &proc[NPROC]; p++) {
+        if (p->state == RUNNABLE) {
+            total += p->tickets;
+        }
+    }
+    return total;
 }
