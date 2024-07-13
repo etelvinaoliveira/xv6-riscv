@@ -5,7 +5,6 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "pstat.h"
 
 uint64
 sys_exit(void)
@@ -92,28 +91,17 @@ sys_uptime(void)
 }
 
 uint64
-sys_setticket(void){
+sys_settickets(void)
+{
   int n_tickets;
   argint(0, &n_tickets);
-
-  if(n_tickets<0) return -1;
-  else{
-    struct proc *p = myproc();
-    if(p->pid != 0)
-      acquire(&p->lock);
-      p->tickets+=n_tickets;
-      release(&p->lock);
-      return 0;
-  }
+  return settickets(n_tickets);
 }
 
 uint64
-sys_getpinfo(void){
-  struct pstat *ps;
-  struct proc *p = 0;
-  for (p = proc; p < &proc[NPROC]; p++) {
-    if (p->state == RUNNABLE) {
-        total += p->tickets;
-    }
-  }
+sys_getpinfo(void)
+{
+  uint64 * pinfo_ptr_address;
+  argaddr(0, &pinfo_ptr_address);
+  return getpinfo(pinfo_ptr_address);
 }

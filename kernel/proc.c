@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "pstat.h"
 
 #define INITIAL_TICKETS 1
 
@@ -323,6 +324,7 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+  np->tickets = p->tickets;
   release(&np->lock);
 
   return pid;
@@ -380,6 +382,7 @@ exit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
+  p->tickets = 0;
 
   release(&wait_lock);
 
@@ -435,6 +438,31 @@ wait(uint64 addr)
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
+}
+
+// Valores para o gerador congruencial linear
+#define A 1103515245
+#define C 12345
+#define M 2147483648
+
+unsigned long rand_seed = 1;  // Semente inicial
+
+unsigned long rand(void) {
+    rand_seed = (A * rand_seed + C) % M;
+    return rand_seed;
+}
+//1 + rand() % n
+
+int
+totalTickets(void) {
+    struct proc *p;
+    int total = 0;
+    for (p = proc; p < &proc[NPROC]; p++) {
+        if (p->state == RUNNABLE) {
+            total += p->tickets;
+        }
+    }
+    return total;
 }
 
 // Per-CPU process scheduler.
@@ -685,14 +713,42 @@ procdump(void)
   }
 }
 
+int 
+settickets(int n_tickets){
+  if(n_tickets<=0)
+  { 
+    return -1;
+  }
+  else
+  {
+    struct proc *p = myproc();
+    if(p->pid != 0)
+      acquire(&p->lock);
+      p->tickets = n_tickets;
+      release(&p->lock);
+      return 0;
+  }
+}
+
 int
-totalTickets(void) {
-    struct proc *p;
-    int total = 0;
-    for (p = proc; p < &proc[NPROC]; p++) {
-        if (p->state == RUNNABLE) {
-            total += p->tickets;
-        }
-    }
-    return total;
+getpinfo(uint64 pinfo_ptr_address){
+  if (pinfo_ptr_address < 0)
+  {
+    return -1;
+  }
+  struct proc *p = 0;
+  struct pstat * pinfo = (struct pstat *) pinfo_ptr_address;
+  for(int i = 0; i < NPROC; i++){
+    p = &proc[i];
+    acquire(&p->lock);
+    pinfo->inuse[i] = p->state != UNUSED;
+    pinfo->tickets[i] = p->tickets;
+    pinfo->pid[i] = p->pid;
+    pinfo->ticks[i] = p->tickets;
+    release(&p->lock);
+  }
+  //copiando o valor atualizado de pstat do kernel para o user ter acesso
+  p = myproc();
+  int success = copyout(p->pagetable, pinfo_ptr_address, (char *)&pinfo, sizeof(pinfo));
+  return success;
 }
