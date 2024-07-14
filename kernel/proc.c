@@ -19,6 +19,7 @@ int nextpid = 1;
 int totalTickets = 0;
 struct spinlock pid_lock;
 struct spinlock total_tickets_lock;
+struct spinlock pinfo_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -57,6 +58,7 @@ procinit(void)
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   initlock(&total_tickets_lock, "total_tickets_lock");
+  initlock(&pinfo_lock, "pinfo_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->tickets = INITIAL_TICKETS;
@@ -743,15 +745,15 @@ getpinfo(uint64 pinfo_ptr_address){
   {
     return -1;
   }
-  struct proc *p = 0;
-  struct pstat * pinfo = (struct pstat *) pinfo_ptr_address;
+  struct proc *p;
+  struct pstat pinfo;
   for(int i = 0; i < NPROC; i++){
     p = &proc[i];
     acquire(&p->lock);
-    pinfo->inuse[i] = p->state != UNUSED;
-    pinfo->tickets[i] = p->tickets;
-    pinfo->pid[i] = p->pid;
-    pinfo->ticks[i] = p->ticks;
+    pinfo.inuse[i] = p->state != UNUSED;
+    pinfo.tickets[i] = p->tickets;
+    pinfo.pid[i] = p->pid;
+    pinfo.ticks[i] = p->ticks;
     release(&p->lock);
   }
   //copiando o valor atualizado de pstat do kernel para o user ter acesso

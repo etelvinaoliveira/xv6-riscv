@@ -6,7 +6,7 @@
 int
 main(int argc, char *argv[])
 {
-  //const char * output_file = "results.csv";
+  const char * output_file = "results.csv";
   int n_processos = 3;
   struct pstat pinfo;
 
@@ -14,7 +14,7 @@ main(int argc, char *argv[])
     n_processos = atoi(argv[1]);
   }
 
-  //int file = open(output_file, O_WRONLY);
+  int file = open(output_file, O_WRONLY);
 
   int processos[n_processos];
   
@@ -34,13 +34,13 @@ main(int argc, char *argv[])
     for (int j = 0; j < NPROC; j++){
       for(int k = 0; k < n_processos; k++){
         if(pinfo.pid[j] == processos[k]){
-          //fprintf(file, "%d,%d\n", pinfo.ticks[j], pinfo.pid[j]);
-          fprintf(2, "%d,%d\n", pinfo.ticks[j], pinfo.pid[j]);
+          fprintf(file, "%d,%d\n", pinfo.ticks[j], pinfo.pid[j]);
+          //fprintf(2, "%d,%d\n", pinfo.ticks[j], pinfo.pid[j]);
         }
       }
     } 
   }
-  //close(file);
+  close(file);
 
   exit(0);
 }

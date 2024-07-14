@@ -133,7 +133,6 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_lottery\
-	$U/_settickets\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
