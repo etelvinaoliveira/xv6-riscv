@@ -101,7 +101,7 @@ sys_settickets(void)
 uint64
 sys_getpinfo(void)
 {
-  uint64 * pinfo_ptr_address;
+  uint64 pinfo_ptr_address;
   argaddr(0, &pinfo_ptr_address);
   return getpinfo(pinfo_ptr_address);
 }

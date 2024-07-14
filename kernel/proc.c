@@ -16,7 +16,9 @@ struct proc proc[NPROC];
 struct proc *initproc;
 
 int nextpid = 1;
+int totalTickets = 0;
 struct spinlock pid_lock;
+struct spinlock total_tickets_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -54,9 +56,14 @@ procinit(void)
   
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  initlock(&total_tickets_lock, "total_tickets_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->tickets = INITIAL_TICKETS;
+      acquire(&total_tickets_lock);
+      totalTickets+=INITIAL_TICKETS;
+      release(&total_tickets_lock);
+      p->ticks = 0;
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
   }
@@ -325,6 +332,9 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   np->tickets = p->tickets;
+  acquire(&total_tickets_lock);
+  totalTickets+=p->tickets;
+  release(&total_tickets_lock);
   release(&np->lock);
 
   return pid;
@@ -382,6 +392,9 @@ exit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
+  acquire(&total_tickets_lock);
+  totalTickets-=p->tickets;
+  release(&total_tickets_lock);
   p->tickets = 0;
 
   release(&wait_lock);
@@ -451,19 +464,6 @@ unsigned long rand(void) {
     rand_seed = (A * rand_seed + C) % M;
     return rand_seed;
 }
-//1 + rand() % n
-
-int
-totalTickets(void) {
-    struct proc *p;
-    int total = 0;
-    for (p = proc; p < &proc[NPROC]; p++) {
-        if (p->state == RUNNABLE) {
-            total += p->tickets;
-        }
-    }
-    return total;
-}
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -482,20 +482,28 @@ scheduler(void)
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+    
+    int proc_loteria = 1+rand() % totalTickets;
+    int soma_loteria = 0;
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      soma_loteria+=p->tickets;
+      if(p->state == RUNNABLE && soma_loteria>=proc_loteria) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
+        p->ticks+=1;
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
+
+        release(&p->lock);
+        break;
       }
       release(&p->lock);
     }
@@ -715,19 +723,19 @@ procdump(void)
 
 int 
 settickets(int n_tickets){
-  if(n_tickets<=0)
-  { 
-    return -1;
-  }
-  else
-  {
+  if(n_tickets>0){
     struct proc *p = myproc();
-    if(p->pid != 0)
+    if(p->pid != 0){
       acquire(&p->lock);
       p->tickets = n_tickets;
+      acquire(&total_tickets_lock);
+      totalTickets+=n_tickets;
+      release(&total_tickets_lock);
       release(&p->lock);
       return 0;
+    }
   }
+  return -1;
 }
 
 int
@@ -744,7 +752,7 @@ getpinfo(uint64 pinfo_ptr_address){
     pinfo->inuse[i] = p->state != UNUSED;
     pinfo->tickets[i] = p->tickets;
     pinfo->pid[i] = p->pid;
-    pinfo->ticks[i] = p->tickets;
+    pinfo->ticks[i] = p->ticks;
     release(&p->lock);
   }
   //copiando o valor atualizado de pstat do kernel para o user ter acesso
