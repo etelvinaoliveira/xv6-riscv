@@ -23,8 +23,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int settickets(int);
-int getpinfo(struct pstat *);
-int lottery_scheduler(void);
+int getpinfo(uint64);
 
 // ulib.c
 int stat(const char*, struct stat*);

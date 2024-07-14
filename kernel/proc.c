@@ -453,16 +453,15 @@ wait(uint64 addr)
   }
 }
 
-// Valores para o gerador congruencial linear
-#define A 1103515245
-#define C 12345
-#define M 2147483648
+static unsigned int rand_seed = 1;  // Semente inicial
 
-unsigned long rand_seed = 1;  // Semente inicial
+void srand(unsigned int seed) {
+    rand_seed = seed;
+}
 
-unsigned long rand(void) {
-    rand_seed = (A * rand_seed + C) % M;
-    return rand_seed;
+unsigned int rand(void) {
+    rand_seed = rand_seed * 1664525 + 1013904223;  // Parâmetros comuns para LCG
+    return (int)(rand_seed & 0x7FFFFFFF);  // Retorna um valor positivo no intervalo de 0 a INT_MAX
 }
 
 // Per-CPU process scheduler.
