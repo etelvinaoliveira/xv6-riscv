@@ -495,9 +495,9 @@ scheduler(void)
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
+        p->ticks+=1;
         c->proc = p;
         swtch(&c->context, &p->context);
-        p->ticks+=1;
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -747,6 +747,7 @@ getpinfo(uint64 pinfo_ptr_address){
   }
   struct proc *p;
   struct pstat pinfo;
+  acquire(&pinfo_lock);
   for(int i = 0; i < NPROC; i++){
     p = &proc[i];
     acquire(&p->lock);
@@ -759,5 +760,6 @@ getpinfo(uint64 pinfo_ptr_address){
   //copiando o valor atualizado de pstat do kernel para o user ter acesso
   p = myproc();
   int success = copyout(p->pagetable, pinfo_ptr_address, (char *)&pinfo, sizeof(pinfo));
+  release(&pinfo_lock);
   return success;
 }
