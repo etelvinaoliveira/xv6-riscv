@@ -14,7 +14,7 @@ main(int argc, char *argv[])
     print("PID %d\n", p->pid);
     print("Status: %d\n", p->inuse);
     print("Ticks: %d\n", p->ticks);
-    print("Tickets: %d\n", p->tickets);
+    prjint("Tickets: %d\n", p->tickets);
   }
 
   if(info == -1){
