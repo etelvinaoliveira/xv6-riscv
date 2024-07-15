@@ -6,7 +6,7 @@
 int
 main(int argc, char *argv[])
 {
-  const char * output_file = "results.csv";
+  const char * output_file = "./results.csv";
   int n_processos = 3;
   struct pstat pinfo;
 
