@@ -8,7 +8,7 @@ main(int argc, char *argv[])
 {
   struct pstat *p;
 
-  int info = getpinfo(p);
+  int info = getpinfo((uint64)p);
 
   for (int i = 0; i < NPROC; i++){
     print("PID %d\n", p->pid);
